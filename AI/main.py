@@ -165,6 +165,8 @@ config = types.GenerateContentConfig(
 MAX_HISTORY = 10
 conversation_history = deque(maxlen=MAX_HISTORY)
 
+curr_datetime = datetime.now()
+
 system_instruction = """
 You are a virtual scheduling assistant. You can perform two types of tasks: sending emails and scheduling meetings.
 
@@ -179,10 +181,10 @@ Rules:
    - Only if the user explicitly asks to schedule a meeting, check the user's availability using the `get_current_availability` function before proposing any times.
    - Only after confirming an available time should you schedule the meeting using the `setup_meeting` function.
    - If the proposed time conflicts with the user's availability, suggest alternative times based on their availability and confirm with the user before scheduling.
-
-3. Always respond politely to the user.  
-4. Never reference yourself as an AI or mention limitations.  
-5. Only take actions necessary for the user's request; do not provide unrelated commentary.  
+3. The current date and time is: """ + curr_datetime.strftime("%Y-%m-%d %H:%M:%S") + """. Imply user's query word like today, tomorrow, next week based on this current date.
+4. Always respond politely to the user.  
+5. Never reference yourself as an AI or mention limitations.  
+6. Only take actions necessary for the user's request; do not provide unrelated commentary.
 
 """
 

@@ -3,27 +3,30 @@ from datetime import datetime
 import pytz
 import requests
 
-def send_email(recipient: str, subject: str, body: str) -> str:
-    # The API endpoint URL
-    url = "http://localhost:8000/api/gmail/send"
+curr_datetime = datetime.now()
+print(str(curr_datetime))
 
-    # The google_id is sent as a query parameter
-    params = {
-        "google_id": "112274170123197936875"
-    }
+# def send_email(recipient: str, subject: str, body: str) -> str:
+#     # The API endpoint URL
+#     url = "http://localhost:8000/api/gmail/send"
 
-    # The email details are sent in the JSON body
-    payload = {
-        "to": recipient,
-        "subject": subject,
-        "body": body
-    }
+#     # The google_id is sent as a query parameter
+#     params = {
+#         "google_id": "112274170123197936875"
+#     }
 
-    # Make the POST request with params and json
-    response = requests.post(url, params=params, json=payload)
-    print(response)
+#     # The email details are sent in the JSON body
+#     payload = {
+#         "to": recipient,
+#         "subject": subject,
+#         "body": body
+#     }
 
-send_email("teerat.nahm@gmail.com", "Test Subject", "This is a test email body.")
+#     # Make the POST request with params and json
+#     response = requests.post(url, params=params, json=payload)
+#     print(response)
+
+# send_email("teerat.nahm@gmail.com", "Test Subject", "This is a test email body.")
 
 # url = "http://127.0.0.1:8000/api/calendar/create"
 # params = {"google_id": "112274170123197936875"}
