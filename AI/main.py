@@ -34,7 +34,6 @@ def summarize_calendar(data, timezone="US/Eastern"):
     return "\n".join(summary)
 
 def get_current_availability(start_range: str, end_range: str) -> str:
-    print(start_range, end_range)
     availability = requests.get(
         "http://localhost:8000/api/calendar/freebusy",
         params={
