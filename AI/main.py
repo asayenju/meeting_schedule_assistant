@@ -1,166 +1,17 @@
-from google import genai
-from google.genai import types
-from dotenv import load_dotenv
-import os
+import json
 from collections import deque
 from datetime import datetime
 import pytz
 import requests
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
+import os
 
+# --- Setup ---
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
-
-# -------- Start Tools Functions ----------- #
-
-def summarize_calendar(data, timezone="US/Eastern"):
-    def fmt(dt_str):
-        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-        local_dt = dt.astimezone(pytz.timezone(timezone))
-        return local_dt.strftime("%a, %b %d, %Y %I:%M %p")
-
-    summary = []
-
-    if "free" in data and data["free"]:
-        summary.append("Free Times:")
-        for slot in data["free"]:
-            summary.append(f"  - {fmt(slot['start'])} → {fmt(slot['end'])}")
-
-    if "busy" in data and data["busy"]:
-        summary.append("Busy Times:")
-        for slot in data["busy"]:
-            summary.append(f"  - {fmt(slot['start'])} → {fmt(slot['end'])}")
-
-    return "\n".join(summary)
-
-def get_current_availability(start_range: str, end_range: str) -> str:
-    return """
-    free times:
-    - Nov 08, 2025 06:00 PM to Nov 08, 2025 08:00 PM
-    - Nov 09, 2025 09:00 AM to Nov 09, 2025 11:00 AM
-    - Nov 10, 2025 01:00 PM to Nov 10, 2025 03:00 PM
-    busy times:
-    - Nov 08, 2025 08:00 AM to Nov 08, 2025 10:00 AM
-    - Nov 09, 2025 01:00 PM to Nov 09, 2025 03:00 PM
-    - Nov 10, 2025 09:00 AM to Nov 10, 2025 11:00 AM
-    """
-    availability = requests.get(
-        "http://localhost:8000/api/calendar/freebusy",
-        params={
-            "start_range": start_range,
-            "end_range": end_range
-        }
-    ).json()
-    return summarize_calendar(availability)
-
-def send_email(recipient: str, subject: str, body: str) -> str:
-    payload = {
-        "to": recipient,
-        "subject": subject,
-        "body": body
-    }
-
-    response = requests.post("http://localhost:8000/gmail/send", json=payload)
-    return f"Email sent to {recipient} with subject '{subject}'." if response.text == "Success" else "Failed to send email."
-    
-def setup_meeting(summary: str, description: str, start_time: str, end_time: str) -> str:
-    event_data = {
-        "summary": summary,
-        "description": description,
-        "start_time": start_time,
-        "end_time": end_time,
-        "timezone": "UTC"
-    }
-    print(event_data)
-    return "success"
-
-    response = requests.post("http://localhost:8000/calendar/create", json=event_data)
-    return f"Meeting scheduled successfully from {start_time} to {end_time}." if response.status_code == 200 else "Failed to schedule meeting."
-
-def retrieve_email() -> str:
-    print("Retrieving new emails...")
-    return "Email 1: Hi Nahm, would you be available to meet at 8 pm on november 8 Email 2: I want to meet for project discussion, what time are you available?"
-
-get_availability_tool = types.Tool(
-    function_declarations=[
-        types.FunctionDeclaration(
-            name="get_current_availability",
-            description="Get the user's current availability during start_range to end_range.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "start_range": {
-                        "type": "string",
-                        "description": "The beginning of the range to check availability. Format: 'YYYY-MM-DDTHH:MM:SSZ'."
-                    },
-                    "end_range": {
-                        "type": "string",
-                        "description": "The beginning of the range to check availability. Format: 'YYYY-MM-DDTHH:MM:SSZ'."
-                    }
-                },
-                "required": ["start_range", "end_range"]
-            }
-        )
-    ]
-)
-
-setup_meeting_tool = types.Tool(
-    function_declarations=[
-        types.FunctionDeclaration(
-            name="setup_meeting",
-            description="Schedule a meeting by create a calendar event on a given day and time range. Generate a short meeting agenda based on the context of the meeting scheduled.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "summary": {"type": "string", "description": "Summary or title of the meeting."},
-                    "description": {"type": "string", "description": "Description or agenda of the meeting."},
-                    "start_time": {"type": "string", "description": "Start time in 'YYYY-MM-DDTHH:MM:SSZ' format."},
-                    "end_time": {"type": "string", "description": "End time in 'YYYY-MM-DDTHH:MM:SSZ' format."}
-                },
-                "required": ["summary", "description", "start_time", "end_time"]
-            }
-        )
-    ]
-)
-
-send_email_tool = types.Tool(
-    function_declarations=[
-        types.FunctionDeclaration(
-            name="send_email",
-            description="Send an email to a specified recipient. make sure to include recipient, subject, and body based on the context of the meeting scheduled.",
-            parameters={
-                "type": "object",
-                "properties": {
-                    "recipient": {"type": "string", "description": "Email address of the recipient."},
-                    "subject": {"type": "string", "description": "Subject of the email."},
-                    "body": {"type": "string", "description": "Body content of the email."}
-                },
-                "required": ["recipient", "subject", "body"]
-            }
-        )
-    ]
-)
-
-retrieve_email_tool = types.Tool(
-    function_declarations=[
-        types.FunctionDeclaration(
-            name="retrieve_email",
-            description="Retrieve new emails from the inbox.",
-            parameters={
-                "type": "object",
-                "properties": {
-                },
-                "required": []
-            }
-        )
-    ]
-)
-
-config = types.GenerateContentConfig(
-    tools=[get_availability_tool, setup_meeting_tool, send_email_tool, retrieve_email_tool]
-)
-
-# -------- End Tools Functions ----------- #
 
 MAX_HISTORY = 8
 conversation_history = deque(maxlen=MAX_HISTORY)
@@ -169,49 +20,146 @@ system_instruction = """
 You are a virtual scheduling assistant. Your goal is to schedule meetings accurately based on the user's availability.
 
 Rules:
-1. You **must always check the user's availability** using the `get_current_availability` function before proposing or scheduling any meeting. Do not assume availability.
-2. Only after confirming an available time can you schedule the meeting using the `setup_meeting` function.
+1. You **must always check the user's availability** using `get_current_availability` before proposing or scheduling any meeting. Do not assume availability.
+2. Only after confirming an available time can you schedule a meeting using `setup_meeting`.
 3. If the proposed time conflicts with the user's availability, suggest alternative times based on their availability. Confirm with the user before scheduling.
-4. Respond politely to the user, but never reference yourself as an AI or mention limitations.
-5. Only take actions necessary to schedule meetings; do not provide unrelated commentary.
+4. Respond politely and concisely.
+5. Never mention being an AI.
 """
 
+# --- Utility: Format and summarize availability ---
+def summarize_calendar(data, timezone="US/Eastern"):
+    def fmt(dt_str):
+        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        local_dt = dt.astimezone(pytz.timezone(timezone))
+        return local_dt.strftime("%a, %b %d, %Y %I:%M %p")
+
+    free = data.get("free", [])
+    busy = data.get("busy", [])
+    return {
+        "free": [{"start": fmt(slot["start"]), "end": fmt(slot["end"])} for slot in free],
+        "busy": [{"start": fmt(slot["start"]), "end": fmt(slot["end"])} for slot in busy],
+    }
+
+# --- Fixed function ---
+def get_current_availability(start_range: str, end_range: str) -> str:
+    """Check calendar availability using the local FastAPI backend."""
+    try:
+        print(f"Checking availability from {start_range} to {end_range}...")
+        resp = requests.get(
+            "http://localhost:8000/api/calendar/freebusy",
+            params={"start_range": start_range, "end_range": end_range},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        availability = resp.json()
+        summary = summarize_calendar(availability)
+        # Return structured JSON so Gemini can parse it
+        return json.dumps(summary)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+# --- Your other tools (simplified for clarity) ---
+def setup_meeting(summary: str, description: str, start_time: str, end_time: str) -> str:
+    try:
+        event_data = {
+            "summary": summary,
+            "description": description,
+            "start_time": start_time,
+            "end_time": end_time,
+            "timezone": "UTC",
+        }
+        resp = requests.post("http://localhost:8000/calendar/create", json=event_data, timeout=10)
+        resp.raise_for_status()
+        return f"Meeting scheduled successfully: {summary} from {start_time} to {end_time}."
+    except Exception as e:
+        return f"Failed to schedule meeting: {e}"
+
+# --- Gemini tool definitions ---
+get_availability_tool = types.Tool(
+    function_declarations=[
+        types.FunctionDeclaration(
+            name="get_current_availability",
+            description="Get the user's calendar availability for a date range.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "start_range": {"type": "string"},
+                    "end_range": {"type": "string"},
+                },
+                "required": ["start_range", "end_range"],
+            },
+        )
+    ]
+)
+
+setup_meeting_tool = types.Tool(
+    function_declarations=[
+        types.FunctionDeclaration(
+            name="setup_meeting",
+            description="Create a Google Calendar meeting event.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "summary": {"type": "string"},
+                    "description": {"type": "string"},
+                    "start_time": {"type": "string"},
+                    "end_time": {"type": "string"},
+                },
+                "required": ["summary", "description", "start_time", "end_time"],
+            },
+        )
+    ]
+)
+
+config = types.GenerateContentConfig(
+    tools=[get_availability_tool, setup_meeting_tool]
+)
+
+# --- 🧠 Main conversation loop ---
 def generate_response(user_input: str):
     conversation_history.append(f"User: {user_input}")
-
     contents = [system_instruction] + list(conversation_history)
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=contents,
-        config=config
+        config=config,
     )
 
     if response.function_calls:
         for func_call in response.function_calls:
-            function_name = func_call.name
+            fn_name = func_call.name
             args = dict(func_call.args)
-            
-            tool_function = globals().get(function_name)
-            if tool_function:
-                function_output = tool_function(**args)
-                conversation_history.append(f"Function {function_name} output: {function_output}")
-            else:
-                print(f"Tool {function_name} not found.")
+            fn = globals().get(fn_name)
 
+            if fn:
+                print(f"Calling {fn_name} with args: {args}")
+                try:
+                    result = fn(**args)
+                    # 🔑 Always tell Gemini what the function returned
+                    conversation_history.append(f"Tool {fn_name} output:\n{result}")
+                except Exception as e:
+                    conversation_history.append(f"Tool {fn_name} error: {e}")
+            else:
+                conversation_history.append(f"Tool {fn_name} not found")
+
+        # 🔁 Second call — now Gemini continues based on tool result
         contents = [system_instruction] + list(conversation_history)
-        final_response = client.models.generate_content(
+        final = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=contents
+            contents=contents,
         )
-        conversation_history.append(f"Assistant: {final_response.text}")
-        return final_response.text
+        conversation_history.append(f"Assistant: {final.text}")
+        return final.text
+
     else:
         conversation_history.append(f"Assistant: {response.text}")
         return response.text
 
+# --- Run loop ---
 if __name__ == "__main__":
     while True:
         user_input = input("You: ")
-        result = generate_response(user_input)
-        print(f"Assistant: {result}")
+        answer = generate_response(user_input)
+        print(f"Assistant: {answer}")
