@@ -9,12 +9,11 @@ import SmartToyIcon from "@mui/icons-material/SmartToy"; // BMO-like icon
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import EmailIcon from "@mui/icons-material/Email";
 import ChatIcon from "@mui/icons-material/Chat";
-import { useNavigate } from "react-router-dom";
+import { signInWithGoogle } from "../api/auth_api";
 
 export default function LandingPage() {
-  const navigate = useNavigate();
   const handleGoogleSignIn = () => {
-    navigate("/thank-you");
+    signInWithGoogle();
   };
 
   return (

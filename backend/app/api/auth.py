@@ -12,3 +12,5 @@ def authenticate():
         return {"message": "Authentication successful. Token saved."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
