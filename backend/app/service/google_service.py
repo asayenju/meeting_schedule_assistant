@@ -4,8 +4,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
-from database import get_auth_tokens_collection
-from service.encryption import encrypt_token, decrypt_token
+from app.database import get_auth_tokens_collection
+from app.service.encryption import encrypt_token, decrypt_token
 
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

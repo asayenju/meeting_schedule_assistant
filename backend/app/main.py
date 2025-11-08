@@ -1,11 +1,12 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.auth import router as auth_router
-from api.calendar import router as calendar_router
-from api.gmail import router as gmail_router
-from database import connect_to_mongo, close_mongo_connection
+from app.api.auth import router as auth_router
+from app.api.calendar import router as calendar_router
+from app.api.gmail import router as gmail_router
+from app.database import connect_to_mongo, close_mongo_connection
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -14,6 +15,10 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: Close MongoDB connection
     await close_mongo_connection()
+
+class Data(BaseModel):
+    temperature: float
+    humidity: float
 
 app = FastAPI(lifespan=lifespan)
 
@@ -36,3 +41,9 @@ def root():
         "message": "Welcome to Google API Demo",
         "routes": ["/api/auth/login", "/api/calendar/freebusy", "/api/gmail/messages"]
     }
+
+
+@app.post("/send-data")
+def receive_data(data: Data):
+    print("Received:", data)
+    return {"status": "ok", "received": data}
