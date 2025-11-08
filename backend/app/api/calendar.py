@@ -6,13 +6,13 @@ from service.google_service import get_calendar_service
 router = APIRouter(prefix="/calendar", tags=["Calendar"])
 
 @router.get("/freebusy")
-def get_freebusy():
+def get_freebusy(start_range: str = None, end_range: str = None):
     """Get free/busy calendar information"""
     try:
         service = get_calendar_service()
 
-        now = datetime.utcnow().isoformat() + 'Z'
-        end_time = (datetime.utcnow() + timedelta(days=1)).isoformat() + 'Z'
+        now = start_range
+        end_time = end_range
 
         body = {
             "timeMin": now,

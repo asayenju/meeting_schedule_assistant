@@ -3,8 +3,9 @@ from google.genai import types
 from dotenv import load_dotenv
 import os
 from collections import deque
-import datetime as datetime
+from datetime import datetime
 import pytz
+import requests
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -33,19 +34,17 @@ def summarize_calendar(data, timezone="US/Eastern"):
     return "\n".join(summary)
 
 def get_current_availability(start_range: str, end_range: str) -> str:
-    return """ my availablity between {start_range} and {end_range} is as follows:
-    🟢 Free Times:
-        - Sat, Nov 08, 2025 12:40 AM → Sat, Nov 08, 2025 03:00 AM
-        - Sat, Nov 08, 2025 04:30 AM → Sat, Nov 08, 2025 07:00 AM
-        - Sat, Nov 08, 2025 08:00 AM → Sat, Nov 08, 2025 10:30 AM
-        - Sat, Nov 08, 2025 11:00 AM → Sun, Nov 09, 2025 12:40 AM
-        🔴 Busy Times:
-        - Sat, Nov 08, 2025 03:00 AM → Sat, Nov 08, 2025 04:30 AM
-        - Sat, Nov 08, 2025 07:00 AM → Sat, Nov 08, 2025 08:00 AM
-        - Sat, Nov 08, 2025 10:30 AM → Sat, Nov 08, 2025 11:00 AM
-        """
-    # availability = None #call ashwin function
-    # return summarize_calendar(availability)
+    print(start_range, end_range)
+    availability = requests.get(
+        "http://localhost:8000/api/calendar/freebusy",
+        params={
+            "start_range": start_range,
+            "end_range": end_range
+        }
+    ).json()
+    return summarize_calendar(availability)
+#     return """"Free Times:
+#   - Sat, Nov 08, 2025 09:00 AM → Sat, Nov 08, 2025 05:00 PM"""
     
 def setup_meeting(day:str, start_time: str, end_time: str) -> str:
     print(f"Setting up meeting on {day} from {start_time} to {end_time}...")
