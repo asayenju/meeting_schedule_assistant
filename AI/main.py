@@ -43,8 +43,6 @@ def get_current_availability(start_range: str, end_range: str) -> str:
         }
     ).json()
     return summarize_calendar(availability)
-#     return """"Free Times:
-#   - Sat, Nov 08, 2025 09:00 AM → Sat, Nov 08, 2025 05:00 PM"""
     
 def setup_meeting(day:str, start_time: str, end_time: str) -> str:
     print(f"Setting up meeting on {day} from {start_time} to {end_time}...")
