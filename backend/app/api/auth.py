@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from datetime import datetime
-from service.google_service import authenticate_user
-from database import get_users_collection, get_auth_tokens_collection
-from models.user import UserCreate
+from app.service.google_service import authenticate_user
+from app.database import get_users_collection, get_auth_tokens_collection
+from app.models.user import UserCreate
 from googleapiclient.discovery import build
 
 router = APIRouter(prefix="/google", tags=["Auth"])

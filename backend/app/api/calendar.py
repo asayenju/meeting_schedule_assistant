@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
-from service.google_service import get_calendar_service
+from app.service.google_service import get_calendar_service
 from pydantic import BaseModel
 
 class EventRequest(BaseModel):
@@ -55,13 +55,10 @@ async def get_freebusy(google_id: str = Query(..., description="Google user ID")
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/create")
-async def create_event(
-    event: EventRequest,
-    google_id: str = Query(..., description="Google user ID")
-):
+async def create_event(event: EventRequest):
     """Create an event in Google Calendar."""
     try:
-        service = await get_calendar_service(google_id)
+        service = get_calendar_service()
 
         event_body = {
             "summary": event.summary,

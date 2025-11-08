@@ -3,7 +3,7 @@ from email.mime.text import MIMEText
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from service.google_service import get_gmail_service
+from app.service.google_service import get_gmail_service
 
 router = APIRouter(prefix="/gmail", tags=["Gmail"])
 
