@@ -10,6 +10,8 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
 
+# -------- Start Tools Functions ----------- #
+
 def summarize_calendar(data, timezone="US/Eastern"):
     def fmt(dt_str):
         dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
@@ -48,6 +50,11 @@ def get_current_availability(start_range: str, end_range: str) -> str:
 def setup_meeting(day:str, start_time: str, end_time: str) -> str:
     print(f"Setting up meeting on {day} from {start_time} to {end_time}...")
     return f"Meeting scheduled on {day} from {start_time} to {end_time}."
+
+def send_email(recipient: str, subject: str, body: str) -> str:
+    print(f"Sending email to {recipient} with subject '{subject}'...")
+    print(f"Email body: {body}")
+    return f"Email sent to {recipient} with subject '{subject}'."
 
 get_availability_tool = types.Tool(
     function_declarations=[
@@ -90,9 +97,29 @@ setup_meeting_tool = types.Tool(
     ]
 )
 
-config = types.GenerateContentConfig(
-    tools=[get_availability_tool, setup_meeting_tool]
+send_email_tool = types.Tool(
+    function_declarations=[
+        types.FunctionDeclaration(
+            name="send_email",
+            description="Send an email to a specified recipient. make sure to include recipient, subject, and body based on the context of the meeting scheduled.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "recipient": {"type": "string", "description": "Email address of the recipient."},
+                    "subject": {"type": "string", "description": "Subject of the email."},
+                    "body": {"type": "string", "description": "Body content of the email."}
+                },
+                "required": ["recipient", "subject", "body"]
+            }
+        )
+    ]
 )
+
+config = types.GenerateContentConfig(
+    tools=[get_availability_tool, setup_meeting_tool, send_email_tool]
+)
+
+# -------- End Tools Functions ----------- #
 
 MAX_HISTORY = 8
 conversation_history = deque(maxlen=MAX_HISTORY)
