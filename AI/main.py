@@ -56,6 +56,10 @@ def send_email(recipient: str, subject: str, body: str) -> str:
     print(f"Email body: {body}")
     return f"Email sent to {recipient} with subject '{subject}'."
 
+def retrieve_email() -> str:
+    print("Retrieving new emails...")
+    return "Email 1: Hi Nahm, would you be available to meet at 8 pm on november 8 Email 2: I want to meet for project discussion, what time are you available?"
+
 get_availability_tool = types.Tool(
     function_declarations=[
         types.FunctionDeclaration(
@@ -115,8 +119,23 @@ send_email_tool = types.Tool(
     ]
 )
 
+retrieve_email_tool = types.Tool(
+    function_declarations=[
+        types.FunctionDeclaration(
+            name="retrieve_email",
+            description="Retrieve new emails from the inbox.",
+            parameters={
+                "type": "object",
+                "properties": {
+                },
+                "required": []
+            }
+        )
+    ]
+)
+
 config = types.GenerateContentConfig(
-    tools=[get_availability_tool, setup_meeting_tool, send_email_tool]
+    tools=[get_availability_tool, setup_meeting_tool, send_email_tool, retrieve_email_tool]
 )
 
 # -------- End Tools Functions ----------- #
