@@ -8,8 +8,47 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
 
+data = {
+  "kind": "calendar#freeBusy",
+  "timeMin": "2025-11-07T09:00:00Z",
+  "timeMax": "2025-11-07T18:00:00Z",
+  "calendars": {
+    "primary": {
+      "busy": [
+        {
+          "start": "2025-11-07T10:00:00Z",
+          "end": "2025-11-07T11:30:00Z"
+        },
+        {
+          "start": "2025-11-07T13:00:00Z",
+          "end": "2025-11-07T14:00:00Z"
+        },
+        {
+          "start": "2025-11-07T15:30:00Z",
+          "end": "2025-11-07T16:00:00Z"
+        }
+      ]
+    }
+  },
+  "groups": {},
+  "errors": []
+}
+
+
+def parse_freebusy_data(freebusy_data):
+    free = freebusy_data["calendars"]["primary"]["free"]
+    busy = freebusy_data["calendars"]["primary"]["busy"]
+
+    data = "Free times:\n"
+    for slot in free:
+        data += f"- From {slot['start']} to {slot['end']}\n"
+    data += "Busy times:\n"
+    for slot in busy:
+        data += f"- From {slot['start']} to {slot['end']}\n"
+    return data
+
 def get_current_availability(day: str) -> str:
-    return f"My availability on {day} is from 10 AM to 4 PM."
+    return f"My availability on {day} is from"
     
 def setup_meeting(day:str, start_time: str, end_time: str) -> str:
     print(f"Setting up meeting on {day} from {start_time} to {end_time}...")
