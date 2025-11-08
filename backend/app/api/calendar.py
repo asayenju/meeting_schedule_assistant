@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from service.google_service import get_calendar_service
@@ -6,11 +6,10 @@ from service.google_service import get_calendar_service
 router = APIRouter(prefix="/calendar", tags=["Calendar"])
 
 @router.get("/freebusy")
-def get_freebusy():
+async def get_freebusy(google_id: str = Query(..., description="Google user ID")):
     """Get free/busy calendar information"""
     try:
-        service = get_calendar_service()
-
+        service = await get_calendar_service(google_id)
         now = datetime.utcnow().isoformat() + 'Z'
         end_time = (datetime.utcnow() + timedelta(days=1)).isoformat() + 'Z'
 

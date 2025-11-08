@@ -1,6 +1,6 @@
 import base64
 from email.mime.text import MIMEText
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from service.google_service import get_gmail_service
@@ -13,10 +13,10 @@ class EmailRequest(BaseModel):
     body: str
 
 @router.get("/incoming")
-async def get_incoming_emails(max_results: int = 10):
+async def get_incoming_emails(google_id: str = Query(..., description="Google user ID"), max_results: int = 10):
     """Get incoming emails (limited to 10 by default)"""
     try:
-        service = get_gmail_service()
+        service = await get_gmail_service(google_id)  # Add google_id parameter
         
         max_results = min(max_results, 50)
         
@@ -52,10 +52,10 @@ async def get_incoming_emails(max_results: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/send")
-async def send_email(email: EmailRequest):
+async def send_email(email: EmailRequest, google_id: str = Query(..., description="Google user ID")):
     """Send an email"""
     try:
-        service = get_gmail_service()
+        service = await get_gmail_service(google_id)
         
         message = MIMEText(email.body)
         message['to'] = email.to
