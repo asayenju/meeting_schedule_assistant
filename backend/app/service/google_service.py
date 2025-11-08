@@ -9,7 +9,9 @@ TOKEN_PATH = os.path.join(BASE_DIR, 'token.json')
 
 SCOPES = [
     'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/gmail.readonly'
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/gmail.modify'
 ]
 
 def get_credentials():
@@ -30,3 +32,13 @@ def get_google_services():
     calendar_service = build('calendar', 'v3', credentials=creds)
     gmail_service = build('gmail', 'v1', credentials=creds)
     return calendar_service, gmail_service
+
+def get_calendar_service():
+    """Get Calendar service only."""
+    creds = get_credentials()
+    return build('calendar', 'v3', credentials=creds)
+
+def get_gmail_service():
+    """Get Gmail service only."""
+    creds = get_credentials()
+    return build('gmail', 'v1', credentials=creds)
