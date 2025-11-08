@@ -20,8 +20,8 @@ async def get_freebusy(google_id: str = Query(..., description="Google user ID")
     """Get free/busy calendar information"""
     try:
         service = await get_calendar_service(google_id)
-        now = datetime.utcnow().isoformat() + 'Z'
-        end_time = (datetime.utcnow() + timedelta(days=1)).isoformat() + 'Z'
+        now = start_range
+        end_time = end_range
 
         body = {
             "timeMin": now,
