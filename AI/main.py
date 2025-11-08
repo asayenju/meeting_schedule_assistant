@@ -60,7 +60,7 @@ def send_email(recipient: str, subject: str, body: str) -> str:
     }
 
     response = requests.post(url, params=params, json=payload)
-    return f"Email sent to {recipient} with subject '{subject}'." if response.text == "Success" else "Failed to send email."
+    return f"Email sent to {recipient} with subject '{subject}'." if response.status_code == 200 else "Failed to send email."
     
 def setup_meeting(summary: str, description: str, start_time: str, end_time: str) -> str:
     params = {"google_id": str(google_id)}
