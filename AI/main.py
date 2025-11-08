@@ -2,6 +2,7 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 import os
+from collections import deque
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -15,58 +16,58 @@ def setup_meeting(day:str, start_time: str, end_time: str) -> str:
     return f"Meeting scheduled on {day} from {start_time} to {end_time}."
 
 AVAILABLE_TOOLS = [get_current_availability, setup_meeting]
+config = types.GenerateContentConfig(tools=AVAILABLE_TOOLS)
 
-config = types.GenerateContentConfig(
-    tools=AVAILABLE_TOOLS
-)
+MAX_HISTORY = 8
+conversation_history = deque(maxlen=MAX_HISTORY)
 
-def generate_response(prompt: str):
+system_instruction = """
+You are a virtual scheduling assistant. Your goal is to schedule meetings accurately based on the user's availability.
+
+Rules:
+1. You **must always check the user's availability** using the `get_current_availability` function before proposing or scheduling any meeting. Do not assume availability.
+2. Only after confirming an available time can you schedule the meeting using the `setup_meeting` function.
+3. If the proposed time conflicts with the user's availability, suggest alternative times based on their availability. Confirm with the user before scheduling.
+4. Respond politely to the user, but never reference yourself as an AI or mention limitations.
+5. Only take actions necessary to schedule meetings; do not provide unrelated commentary.
+"""
+
+def generate_response(user_input: str):
+    conversation_history.append(f"User: {user_input}")
+
+    contents = [system_instruction] + list(conversation_history)
+
     response = client.models.generate_content(
-        model="gemini-2.5-flash", 
-        contents=prompt,
+        model="gemini-2.5-flash",
+        contents=contents,
         config=config
     )
-    
+
     if response.function_calls:
-        function_responses = []
-        
         for func_call in response.function_calls:
             function_name = func_call.name
             args = dict(func_call.args)
             
             tool_function = globals().get(function_name)
-            
             if tool_function:
                 function_output = tool_function(**args)
-                
-                function_responses.append(
-                    {"function_name": function_name, "response": function_output}
-                )
+                conversation_history.append(f"Function {function_name} output: {function_output}")
             else:
-                print(f"   - Error: Tool {function_name} not found.")
+                print(f"Tool {function_name} not found.")
 
-        contents = [response.candidates[0].content]
-
-        for f_response in function_responses:
-            contents.append(
-                types.Part.from_function_response(
-                    name=f_response["function_name"], 
-                    response=f_response["response"]
-                )
-            )
-
+        contents = [system_instruction] + list(conversation_history)
         final_response = client.models.generate_content(
-            model="gemini-2.5-flash", 
+            model="gemini-2.5-flash",
             contents=contents
         )
-
+        conversation_history.append(f"Assistant: {final_response.text}")
         return final_response.text
-        
     else:
+        conversation_history.append(f"Assistant: {response.text}")
         return response.text
 
 if __name__ == "__main__":
     while True:
-        prompt = input("Enter your prompt: ")
-        result = generate_response(prompt)
-        print(f"\nResponse: {result}")
+        user_input = input("You: ")
+        result = generate_response(user_input)
+        print(f"Assistant: {result}")
