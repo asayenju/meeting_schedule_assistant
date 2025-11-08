@@ -3,59 +3,96 @@ from google.genai import types
 from dotenv import load_dotenv
 import os
 from collections import deque
+import datetime as datetime
+import pytz
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
 
-data = {
-  "kind": "calendar#freeBusy",
-  "timeMin": "2025-11-07T09:00:00Z",
-  "timeMax": "2025-11-07T18:00:00Z",
-  "calendars": {
-    "primary": {
-      "busy": [
-        {
-          "start": "2025-11-07T10:00:00Z",
-          "end": "2025-11-07T11:30:00Z"
-        },
-        {
-          "start": "2025-11-07T13:00:00Z",
-          "end": "2025-11-07T14:00:00Z"
-        },
-        {
-          "start": "2025-11-07T15:30:00Z",
-          "end": "2025-11-07T16:00:00Z"
-        }
-      ]
-    }
-  },
-  "groups": {},
-  "errors": []
-}
+def summarize_calendar(data, timezone="US/Eastern"):
+    def fmt(dt_str):
+        dt = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        local_dt = dt.astimezone(pytz.timezone(timezone))
+        return local_dt.strftime("%a, %b %d, %Y %I:%M %p")
 
+    summary = []
 
-def parse_freebusy_data(freebusy_data):
-    free = freebusy_data["calendars"]["primary"]["free"]
-    busy = freebusy_data["calendars"]["primary"]["busy"]
+    if "free" in data and data["free"]:
+        summary.append("Free Times:")
+        for slot in data["free"]:
+            summary.append(f"  - {fmt(slot['start'])} → {fmt(slot['end'])}")
 
-    data = "Free times:\n"
-    for slot in free:
-        data += f"- From {slot['start']} to {slot['end']}\n"
-    data += "Busy times:\n"
-    for slot in busy:
-        data += f"- From {slot['start']} to {slot['end']}\n"
-    return data
+    if "busy" in data and data["busy"]:
+        summary.append("Busy Times:")
+        for slot in data["busy"]:
+            summary.append(f"  - {fmt(slot['start'])} → {fmt(slot['end'])}")
 
-def get_current_availability(day: str) -> str:
-    return f"My availability on {day} is from"
+    return "\n".join(summary)
+
+def get_current_availability(start_range: str, end_range: str) -> str:
+    return """ my availablity between {start_range} and {end_range} is as follows:
+    🟢 Free Times:
+        - Sat, Nov 08, 2025 12:40 AM → Sat, Nov 08, 2025 03:00 AM
+        - Sat, Nov 08, 2025 04:30 AM → Sat, Nov 08, 2025 07:00 AM
+        - Sat, Nov 08, 2025 08:00 AM → Sat, Nov 08, 2025 10:30 AM
+        - Sat, Nov 08, 2025 11:00 AM → Sun, Nov 09, 2025 12:40 AM
+        🔴 Busy Times:
+        - Sat, Nov 08, 2025 03:00 AM → Sat, Nov 08, 2025 04:30 AM
+        - Sat, Nov 08, 2025 07:00 AM → Sat, Nov 08, 2025 08:00 AM
+        - Sat, Nov 08, 2025 10:30 AM → Sat, Nov 08, 2025 11:00 AM
+        """
+    # availability = None #call ashwin function
+    # return summarize_calendar(availability)
     
 def setup_meeting(day:str, start_time: str, end_time: str) -> str:
     print(f"Setting up meeting on {day} from {start_time} to {end_time}...")
     return f"Meeting scheduled on {day} from {start_time} to {end_time}."
 
-AVAILABLE_TOOLS = [get_current_availability, setup_meeting]
-config = types.GenerateContentConfig(tools=AVAILABLE_TOOLS)
+get_availability_tool = types.Tool(
+    function_declarations=[
+        types.FunctionDeclaration(
+            name="get_current_availability",
+            description="Get the user's current availability during start_range to end_range.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "start_range": {
+                        "type": "string",
+                        "description": "The beginning of the range to check availability. Format: 'YYYY-MM-DDTHH:MM:SSZ'."
+                    },
+                    "end_range": {
+                        "type": "string",
+                        "description": "The beginning of the range to check availability. Format: 'YYYY-MM-DDTHH:MM:SSZ'."
+                    }
+                },
+                "required": ["start_range", "end_range"]
+            }
+        )
+    ]
+)
+
+setup_meeting_tool = types.Tool(
+    function_declarations=[
+        types.FunctionDeclaration(
+            name="setup_meeting",
+            description="Schedule a meeting on a given day and time range.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "day": {"type": "string", "description": "The day of the meeting, e.g., 'Monday'."},
+                    "start_time": {"type": "string", "description": "Start time in HH:MM format or ISO 8601."},
+                    "end_time": {"type": "string", "description": "End time in HH:MM format or ISO 8601."}
+                },
+                "required": ["day", "start_time", "end_time"]
+            }
+        )
+    ]
+)
+
+config = types.GenerateContentConfig(
+    tools=[get_availability_tool, setup_meeting_tool]
+)
 
 MAX_HISTORY = 8
 conversation_history = deque(maxlen=MAX_HISTORY)
