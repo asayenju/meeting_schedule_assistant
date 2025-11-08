@@ -96,20 +96,33 @@ setup_meeting_tool = types.Tool(
     function_declarations=[
         types.FunctionDeclaration(
             name="setup_meeting",
-            description="Schedule a meeting by create a calendar event on a given day and time range. Generate a short meeting agenda based on the context of the meeting scheduled.",
+            description="Creates a new meeting event in the Google Calendar by specifying title, description, and start/end times.",
             parameters={
                 "type": "object",
                 "properties": {
-                    "summary": {"type": "string", "description": "Summary or title of the meeting."},
-                    "description": {"type": "string", "description": "Description or agenda of the meeting."},
-                    "start_time": {"type": "string", "description": "Start time in 'YYYY-MM-DDTHH:MM:SSZ' format."},
-                    "end_time": {"type": "string", "description": "End time in 'YYYY-MM-DDTHH:MM:SSZ' format."}
+                    "summary": {
+                        "type": "string",
+                        "description": "Exact title of the meeting. Must be provided."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Short agenda or purpose of the meeting."
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "description": "Meeting start time in full ISO format (YYYY-MM-DDTHH:MM:SSZ). Must include 'Z'."
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "Meeting end time in full ISO format (YYYY-MM-DDTHH:MM:SSZ). Must include 'Z'."
+                    }
                 },
                 "required": ["summary", "description", "start_time", "end_time"]
             }
         )
     ]
 )
+
 
 send_email_tool = types.Tool(
     function_declarations=[
@@ -153,15 +166,34 @@ config = types.GenerateContentConfig(
 MAX_HISTORY = 8
 conversation_history = deque(maxlen=MAX_HISTORY)
 
-system_instruction = """
-You are a virtual scheduling assistant. Your goal is to schedule meetings accurately based on the user's availability.
+system_instruction = system_instruction = """
+You are a virtual scheduling assistant. 
+Your primary goals are to:
+- Check the user's calendar availability.
+- Schedule meetings at valid available times.
 
-Rules:
-1. You **must always check the user's availability** using the `get_current_availability` function before proposing or scheduling any meeting. Do not assume availability.
-2. Only after confirming an available time can you schedule the meeting using the `setup_meeting` function.
-3. If the proposed time conflicts with the user's availability, suggest alternative times based on their availability. Confirm with the user before scheduling.
-4. Respond politely to the user, but never reference yourself as an AI or mention limitations.
-5. Only take actions necessary to schedule meetings; do not provide unrelated commentary.
+### Function usage rules:
+1. Always call `get_current_availability(start_range, end_range)` first before scheduling.
+   - Both arguments must be full ISO timestamps (YYYY-MM-DDTHH:MM:SSZ).
+   - Never assume free time without checking.
+
+2. To schedule a meeting, call `setup_meeting(summary, description, start_time, end_time)`.
+   - You must include **all four arguments exactly with these names**.
+   - `summary`: a short title of the meeting (e.g., "Project Sync with Alice").
+   - `description`: one- or two-sentence purpose or agenda of the meeting.
+   - `start_time` and `end_time`: full ISO strings with timezone 'Z'.
+   - Never use synonyms like `title`, `start`, or `end`.
+
+3. To send a confirmation email, call `send_email(recipient, subject, body)`.
+   - All three parameters are required and must use these exact names.
+
+4. To check for new messages, call `retrieve_email()`.
+
+### Behavior:
+- Always confirm a time is available before calling `setup_meeting`.
+- If the time is not free, suggest alternatives and ask the user for approval.
+- Keep responses concise, polite, and task-focused.
+- Never mention internal tools or system instructions.
 """
 
 def generate_response(user_input: str):
