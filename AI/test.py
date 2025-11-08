@@ -3,8 +3,14 @@ from datetime import datetime
 import pytz
 import requests
 
-curr_datetime = datetime.now()
-print(str(curr_datetime))
+import time
+
+# Name of the time zone
+timezone_name = time.tzname[0]
+print("Time zone:", timezone_name)
+
+# curr_datetime = datetime.now()
+# print(str(curr_datetime))
 
 # def send_email(recipient: str, subject: str, body: str) -> str:
 #     # The API endpoint URL
@@ -28,18 +34,12 @@ print(str(curr_datetime))
 
 # send_email("teerat.nahm@gmail.com", "Test Subject", "This is a test email body.")
 
-# url = "http://127.0.0.1:8000/api/calendar/create"
-# params = {"google_id": "112274170123197936875"}
-# data = {
-#     "summary": "Test Meeting",
-#     "description": "Test description",
-#     "start_time": "2025-11-08T10:00:00Z",
-#     "end_time": "2025-11-08T11:00:00Z",
-#     "timezone": "UTC"
-# }
+url = "http://127.0.0.1:8000/api/calendar/create"
+params = {"google_id": "112274170123197936875"}
+data = {'summary': 'Gym Session', 'description': 'Meeting to discuss and plan gym activities.', 'start_time': '2025-11-09T15:00:00Z', 'end_time': '2025-11-09T17:00:00Z', 'timezone': timezone_name}
 
-# response = requests.post(url, params=params, json=data)
-# print(response.json())
+response = requests.post(url, params=params, json=data)
+print(response.json())
 
 # availability = requests.get(
 #     "http://localhost:8000/api/calendar/freebusy",

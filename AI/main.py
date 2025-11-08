@@ -188,6 +188,7 @@ Rules:
 
 """
 
+
 def generate_response(user_input: str):
     conversation_history.append(f"User: {user_input}")
 

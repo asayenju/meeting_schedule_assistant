@@ -55,10 +55,13 @@ async def get_freebusy(google_id: str = Query(..., description="Google user ID")
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/create")
-async def create_event(event: EventRequest):
+async def create_event(
+    event: EventRequest,
+    google_id: str = Query(..., description="Google user ID")
+):
     """Create an event in Google Calendar."""
     try:
-        service = get_calendar_service()
+        service = await get_calendar_service(google_id)
 
         event_body = {
             "summary": event.summary,
