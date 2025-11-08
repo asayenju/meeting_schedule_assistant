@@ -7,18 +7,14 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=api_key)
 
-def get_current_weather(city: str) -> str:
-    if "boston" in city.lower():
-        return "The weather in Boston is currently 5°C and cloudy with a chance of light snow."
-    elif "tokyo" in city.lower():
-        return "The weather in Tokyo is currently 12°C and sunny."
-    else:
-        return f"Weather data for {city} is not available."
+def get_current_availability(day: str) -> str:
+    return f"My availability on {day} is from 10 AM to 4 PM."
     
-def say_hello(name: str) -> str:
-    return f"Hello, {name}! How can I assist you today?"
+def setup_meeting(day:str, start_time: str, end_time: str) -> str:
+    print(f"Setting up meeting on {day} from {start_time} to {end_time}...")
+    return f"Meeting scheduled on {day} from {start_time} to {end_time}."
 
-AVAILABLE_TOOLS = [get_current_weather, say_hello]
+AVAILABLE_TOOLS = [get_current_availability, setup_meeting]
 
 config = types.GenerateContentConfig(
     tools=AVAILABLE_TOOLS
@@ -70,8 +66,7 @@ def generate_response(prompt: str):
         return response.text
 
 if __name__ == "__main__":
-    prompt = "What is the weather like in Boston? also say hello to minh"
-
-    print("="*60)
-    result1 = generate_response(prompt)
-    print(f"\nResponse: {result1}")
+    while True:
+        prompt = input("Enter your prompt: ")
+        result = generate_response(prompt)
+        print(f"\nResponse: {result}")
