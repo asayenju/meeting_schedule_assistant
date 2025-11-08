@@ -60,6 +60,7 @@ def retrieve_email() -> str:
     print("Retrieving new emails...")
     return "Email 1: Hi Nahm, would you be available to meet at 8 pm on november 8 Email 2: I want to meet for project discussion, what time are you available?"
 
+
 get_availability_tool = types.Tool(
     function_declarations=[
         types.FunctionDeclaration(
