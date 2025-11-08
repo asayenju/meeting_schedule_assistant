@@ -4,8 +4,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth import router as auth_router
 from api.calendar import router as calendar_router
 from api.gmail import router as gmail_router
+from database import connect_to_mongo, close_mongo_connection
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Connect to MongoDB
+    await connect_to_mongo()
+    yield
+    # Shutdown: Close MongoDB connection
+    await close_mongo_connection()
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
