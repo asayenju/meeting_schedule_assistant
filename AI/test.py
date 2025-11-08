@@ -1,17 +1,31 @@
 import requests
 from datetime import datetime
 import pytz
+import requests
 
-availability = requests.get(
-    "http://localhost:8000/api/calendar/freebusy",
-    params={
-        "google_id": 108790826938109809514,  # Add this - REQUIRED
-        "start_range": "2025-11-15T00:00:00Z",
-        "end_range": "2025-11-15T23:59:59Z"
-    }
-).json()
+url = "http://127.0.0.1:8000/api/calendar/create"
+params = {"google_id": "112274170123197936875"}
+data = {
+    "summary": "Test Meeting",
+    "description": "Test description",
+    "start_time": "2025-11-08T10:00:00Z",
+    "end_time": "2025-11-08T11:00:00Z",
+    "timezone": "UTC"
+}
 
-print(availability)
+response = requests.post(url, params=params, json=data)
+print(response.json())
+
+# availability = requests.get(
+#     "http://localhost:8000/api/calendar/freebusy",
+#     params={
+#         "google_id": 108790826938109809514,  # Add this - REQUIRED
+#         "start_range": "2025-11-15T00:00:00Z",
+#         "end_range": "2025-11-15T23:59:59Z"
+#     }
+# ).json()
+
+# print(availability)
 
 # def summarize_calendar(data, timezone="US/Eastern"):
 #     def fmt(dt_str):

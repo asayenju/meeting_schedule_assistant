@@ -58,16 +58,17 @@ def send_email(recipient: str, subject: str, body: str) -> str:
     return f"Email sent to {recipient} with subject '{subject}'." if response.text == "Success" else "Failed to send email."
     
 def setup_meeting(summary: str, description: str, start_time: str, end_time: str) -> str:
-    event_data = {
+    params = {"google_id": str(google_id)}
+    data = {
         "summary": summary,
         "description": description,
         "start_time": start_time,
         "end_time": end_time,
         "timezone": "UTC"
     }
-    print(event_data)
+    print(data)
 
-    response = requests.post("http://localhost:8000/calendar/create", json=event_data)
+    response = requests.post("http://127.0.0.1:8000/api/calendar/create", params=params, json=data)
     print(response)
     return f"Meeting scheduled successfully from {start_time} to {end_time}." if response.status_code == 200 else "Failed to schedule meeting."
 
