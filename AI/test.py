@@ -3,18 +3,40 @@ from datetime import datetime
 import pytz
 import requests
 
-url = "http://127.0.0.1:8000/api/calendar/create"
-params = {"google_id": "112274170123197936875"}
-data = {
-    "summary": "Test Meeting",
-    "description": "Test description",
-    "start_time": "2025-11-08T10:00:00Z",
-    "end_time": "2025-11-08T11:00:00Z",
-    "timezone": "UTC"
-}
+def send_email(recipient: str, subject: str, body: str) -> str:
+    # The API endpoint URL
+    url = "http://localhost:8000/api/gmail/send"
 
-response = requests.post(url, params=params, json=data)
-print(response.json())
+    # The google_id is sent as a query parameter
+    params = {
+        "google_id": "112274170123197936875"
+    }
+
+    # The email details are sent in the JSON body
+    payload = {
+        "to": recipient,
+        "subject": subject,
+        "body": body
+    }
+
+    # Make the POST request with params and json
+    response = requests.post(url, params=params, json=payload)
+    print(response)
+
+send_email("teerat.nahm@gmail.com", "Test Subject", "This is a test email body.")
+
+# url = "http://127.0.0.1:8000/api/calendar/create"
+# params = {"google_id": "112274170123197936875"}
+# data = {
+#     "summary": "Test Meeting",
+#     "description": "Test description",
+#     "start_time": "2025-11-08T10:00:00Z",
+#     "end_time": "2025-11-08T11:00:00Z",
+#     "timezone": "UTC"
+# }
+
+# response = requests.post(url, params=params, json=data)
+# print(response.json())
 
 # availability = requests.get(
 #     "http://localhost:8000/api/calendar/freebusy",

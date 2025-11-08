@@ -48,13 +48,18 @@ def get_current_availability(start_range: str, end_range: str) -> str:
     return summarize_calendar(availability)
 
 def send_email(recipient: str, subject: str, body: str) -> str:
+    url = "http://localhost:8000/api/gmail/send"
+
+    params = {
+        "google_id": str(google_id)
+    }
     payload = {
         "to": recipient,
         "subject": subject,
         "body": body
     }
 
-    response = requests.post("http://localhost:8000/gmail/send", json=payload)
+    response = requests.post(url, params=params, json=payload)
     return f"Email sent to {recipient} with subject '{subject}'." if response.text == "Success" else "Failed to send email."
     
 def setup_meeting(summary: str, description: str, start_time: str, end_time: str) -> str:
@@ -157,18 +162,28 @@ config = types.GenerateContentConfig(
 
 # -------- End Tools Functions ----------- #
 
-MAX_HISTORY = 5
+MAX_HISTORY = 10
 conversation_history = deque(maxlen=MAX_HISTORY)
 
 system_instruction = """
-You are a virtual scheduling assistant. Your goal is to schedule meetings accurately based on the user's availability.
+You are a virtual scheduling assistant. You can perform two types of tasks: sending emails and scheduling meetings.
 
 Rules:
-1. You **must always check the user's availability** using the `get_current_availability` function before proposing or scheduling any meeting. Do not assume availability.
-2. Only after confirming an available time can you schedule the meeting using the `setup_meeting` function.
-3. If the proposed time conflicts with the user's availability, suggest alternative times based on their availability. Confirm with the user before scheduling.
-4. Respond politely to the user, but never reference yourself as an AI or mention limitations.
-5. Only take actions necessary to schedule meetings; do not provide unrelated commentary.
+
+1. **Sending emails**:
+   - If the user asks you to send an email, do so using the `send_email` function.
+   - After sending an email, confirm to the user that the email has been sent.
+   - Do **not** suggest or ask about setting up a meeting unless explicitly instructed.
+
+2. **Scheduling meetings**:
+   - Only if the user explicitly asks to schedule a meeting, check the user's availability using the `get_current_availability` function before proposing any times.
+   - Only after confirming an available time should you schedule the meeting using the `setup_meeting` function.
+   - If the proposed time conflicts with the user's availability, suggest alternative times based on their availability and confirm with the user before scheduling.
+
+3. Always respond politely to the user.  
+4. Never reference yourself as an AI or mention limitations.  
+5. Only take actions necessary for the user's request; do not provide unrelated commentary.  
+
 """
 
 def generate_response(user_input: str):
