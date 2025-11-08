@@ -42,15 +42,22 @@ def get_current_availability(start_range: str, end_range: str) -> str:
         }
     ).json()
     return summarize_calendar(availability)
+
+
+
+def send_email(recipient: str, subject: str, body: str) -> str:
+    payload = {
+        "to": recipient,
+        "subject": subject,
+        "body": body
+    }
+
+    response = requests.post("http://localhost:8000/gmail/send", json=payload)
+    return f"Email sent to {recipient} with subject '{subject}'." if response.text == "Success" else "Failed to send email."
     
 def setup_meeting(day:str, start_time: str, end_time: str) -> str:
     print(f"Setting up meeting on {day} from {start_time} to {end_time}...")
     return f"Meeting scheduled on {day} from {start_time} to {end_time}."
-
-def send_email(recipient: str, subject: str, body: str) -> str:
-    print(f"Sending email to {recipient} with subject '{subject}'...")
-    print(f"Email body: {body}")
-    return f"Email sent to {recipient} with subject '{subject}'."
 
 def retrieve_email() -> str:
     print("Retrieving new emails...")
