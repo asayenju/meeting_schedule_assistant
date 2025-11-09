@@ -20,7 +20,8 @@ async def authenticate():
         user_doc = {
             "google_id": google_id,
             "email": email,
-            "createdAt": datetime.utcnow()
+            "createdAt": datetime.utcnow(),
+            "pending_requests": []
         }
         
         # Upsert user document

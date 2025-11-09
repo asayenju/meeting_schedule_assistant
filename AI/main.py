@@ -63,15 +63,17 @@ def send_email(recipient: str, subject: str, body: str) -> str:
     return f"Email sent to {recipient} with subject '{subject}'." if response.status_code == 200 else "Failed to send email."
     
 def setup_meeting(summary: str, description: str, start_time: str, end_time: str) -> str:
+    USER_TIMEZONE = "US/Eastern"  # Amherst, MA timezone
+    
     params = {"google_id": str(google_id)}
     data = {
         "summary": summary,
         "description": description,
         "start_time": start_time,
         "end_time": end_time,
-        "timezone": "UTC"
+        "timezone": USER_TIMEZONE  # Use US/Eastern timezone
     }
-    print(data)
+    print(f"Setting up meeting in {USER_TIMEZONE}: {data}")
 
     response = requests.post("http://127.0.0.1:8000/api/calendar/create", params=params, json=data)
     print(response)
@@ -134,14 +136,14 @@ setup_meeting_tool = types.Tool(
     function_declarations=[
         types.FunctionDeclaration(
             name="setup_meeting",
-            description="Schedule a meeting by create a calendar event on a given day and time range. Generate a short meeting agenda based on the context of the meeting scheduled.",
+            description="Schedule a meeting by creating a calendar event. IMPORTANT: Provide times in US/Eastern timezone format 'YYYY-MM-DDTHH:MM:SS' (without Z). For example, '2025-01-15T14:00:00' means 2pm Eastern on January 15, 2025.",
             parameters={
                 "type": "object",
                 "properties": {
                     "summary": {"type": "string", "description": "Summary or title of the meeting."},
                     "description": {"type": "string", "description": "Description or agenda of the meeting."},
-                    "start_time": {"type": "string", "description": "Start time in 'YYYY-MM-DDTHH:MM:SSZ' format."},
-                    "end_time": {"type": "string", "description": "End time in 'YYYY-MM-DDTHH:MM:SSZ' format."}
+                    "start_time": {"type": "string", "description": "Start time in US/Eastern timezone format: 'YYYY-MM-DDTHH:MM:SS' (e.g., '2025-01-15T14:00:00' for 2pm Eastern)."},
+                    "end_time": {"type": "string", "description": "End time in US/Eastern timezone format: 'YYYY-MM-DDTHH:MM:SS' (e.g., '2025-01-15T14:30:00' for 2:30pm Eastern)."}
                 },
                 "required": ["summary", "description", "start_time", "end_time"]
             }
@@ -191,10 +193,20 @@ config = types.GenerateContentConfig(
 MAX_HISTORY = 10
 conversation_history = deque(maxlen=MAX_HISTORY)
 
-curr_datetime = datetime.now()
+# Amherst, MA is in US/Eastern timezone
+USER_TIMEZONE = "US/Eastern"
+local_tz = pytz.timezone(USER_TIMEZONE)
+local_time = datetime.now(local_tz)
 
 system_instruction = """
 You are a virtual scheduling assistant. You can perform two types of tasks: sending emails and scheduling meetings.
+
+**IMPORTANT TIMEZONE INFORMATION:**
+- The user is located in Amherst, MA, USA (US/Eastern timezone).
+- When the user says a time like "2pm" or "2:30pm", they mean that time in US/Eastern timezone.
+- Current local time (US/Eastern): """ + local_time.strftime("%Y-%m-%d %H:%M:%S %Z") + """
+- When calling `setup_meeting`, you should provide times in the format 'YYYY-MM-DDTHH:MM:SS' (without Z) representing the local time in US/Eastern.
+- The function will automatically handle the timezone conversion.
 
 Rules:
 
@@ -206,8 +218,9 @@ Rules:
 2. **Scheduling meetings**:
    - Only if the user explicitly asks to schedule a meeting, check the user's availability using the `get_current_availability` function before proposing any times.
    - Only after confirming an available time should you schedule the meeting using the `setup_meeting` function.
+   - **CRITICAL**: When the user says a time like "2pm", interpret it as 2pm US/Eastern time. Convert it to the format 'YYYY-MM-DDTHH:MM:SS' (e.g., '2025-01-15T14:00:00' for 2pm Eastern on Jan 15, 2025).
    - If the proposed time conflicts with the user's availability, suggest alternative times based on their availability and confirm with the user before scheduling.
-3. The current date and time is: """ + curr_datetime.strftime("%Y-%m-%d %H:%M:%S") + """. Imply user's query word like today, tomorrow, next week based on this current date.
+    3. The current date and time is: """ + local_time.strftime("%Y-%m-%d %H:%M:%S %Z") + """. Imply user's query word like today, tomorrow, next week based on this current date.
 4. Always respond politely to the user.  
 5. Never reference yourself as an AI or mention limitations.  
 6. Only take actions necessary for the user's request; do not provide unrelated commentary.

@@ -1,45 +1,45 @@
-import requests
-from datetime import datetime
-import pytz
-import requests
+# import requests
+# from datetime import datetime
+# import pytz
+# import requests
 
-import time
+# import time
 
-import requests
-from pprint import pprint
+# import requests
+# from pprint import pprint
 
-url = "http://localhost:8000/api/gmail/unread"
+# url = "http://localhost:8000/api/gmail/unread"
 
-# Define the query parameters
-params = {
-    "google_id": "112274170123197936875",
-    "max_results": 5,
-    "mark_as_read": False
-}
+# # Define the query parameters
+# params = {
+#     "google_id": "112274170123197936875",
+#     "max_results": 5,
+#     "mark_as_read": False
+# }
 
-# Make the GET request
-response = requests.get(url, params=params)
+# # Make the GET request
+# response = requests.get(url, params=params)
 
-def format_emails(data):
-    emails = data.get('emails', [])
-    result = []
+# def format_emails(data):
+#     emails = data.get('emails', [])
+#     result = []
 
-    for i, email in enumerate(emails, start=1):
-        email_str = (
-            f"Email {i}\n"
-            f"From: {email.get('from')}, Date: {email.get('date')}\n"
-            f"Subject: {email.get('subject')}\n"
-            f"Snippet: {email.get('snippet')}\n"
-        )
-        result.append(email_str)
+#     for i, email in enumerate(emails, start=1):
+#         email_str = (
+#             f"Email {i}\n"
+#             f"From: {email.get('from')}, Date: {email.get('date')}\n"
+#             f"Subject: {email.get('subject')}\n"
+#             f"Snippet: {email.get('snippet')}\n"
+#         )
+#         result.append(email_str)
 
-    return "\n".join(result)
+#     return "\n".join(result)
 
-# Check the response
-if response.status_code == 200:
-    print(format_emails(response.json()))
-else:
-    print("Error:", response.status_code, response.text)
+# # Check the response
+# if response.status_code == 200:
+#     print(format_emails(response.json()))
+# else:
+#     print("Error:", response.status_code, response.text)
 
 # Define the API URL
 # url = "http://localhost:8001/get-response"

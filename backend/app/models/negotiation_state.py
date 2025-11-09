@@ -29,15 +29,25 @@ class NegotiationStateCreate(BaseModel):
     original_request_time: Optional[str] = None
     suggested_times: Optional[List[datetime]] = None
     last_response_sent: Optional[datetime] = None
-    created_at: datetime = None
-    updated_at: datetime = None
+    # Remove created_at and updated_at from the model - they're auto-generated
+    
+    class Config:
+        # Exclude these fields from the schema
+        json_schema_extra = {
+            "example": {
+                "user_id": "123456789",
+                "thread_id": "thread_abc123",
+                "status": "RECEIVED",
+                "sender_email": "sender@example.com",
+                "original_request_time": "2025-11-08T10:00:00Z"
+            }
+        }
     
     def __init__(self, **data):
         now = datetime.utcnow()
-        if 'created_at' not in data or data['created_at'] is None:
-            data['created_at'] = now
-        if 'updated_at' not in data or data['updated_at'] is None:
-            data['updated_at'] = now
+        # Auto-generate timestamps
+        data["created_at"] = now
+        data["updated_at"] = now
         super().__init__(**data)
 
 class NegotiationStateUpdate(BaseModel):
