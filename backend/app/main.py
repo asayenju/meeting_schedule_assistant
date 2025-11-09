@@ -35,7 +35,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api", tags=["Auth"])
 app.include_router(calendar_router, prefix="/api", tags=["Calendar"])
 app.include_router(gmail_router, prefix="/api", tags=["Gmail"])
-app.include_router(device_router, prefix="/api", tags=["Device"])
+app.include_router(device_router, prefix="/api", tags=["Audio"])
 
 @app.get("/")
 def root():
