@@ -74,3 +74,53 @@ async def send_email(email: EmailRequest, google_id: str = Query(..., descriptio
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/unread")
+async def get_recent_unread_emails(
+    google_id: str = Query(..., description="Google user ID"),
+    max_results: int = Query(10, description="Maximum number of unread emails to fetch"),
+    mark_as_read: bool = Query(False, description="Mark unread emails as read after fetching")
+):
+    try:
+        service = await get_gmail_service(google_id)
+        max_results = min(max_results, 30)
+
+        response = service.users().messages().list(
+            userId='me',
+            q='is:unread label:inbox',
+            maxResults=max_results
+        ).execute()
+
+        messages = response.get('messages', [])
+        if not messages:
+            return JSONResponse(content={"emails": [], "count": 0, "message": "No unread emails found."})
+
+        email_list = []
+        for msg in messages:
+            message = service.users().messages().get(
+                userId='me',
+                id=msg['id'],
+                format='metadata',
+                metadataHeaders=['From', 'Subject', 'Date']
+            ).execute()
+
+            headers = {h['name']: h['value'] for h in message['payload']['headers']}
+            email_list.append({
+                'id': msg['id'],
+                'subject': headers.get('Subject', 'No Subject'),
+                'from': headers.get('From', 'Unknown'),
+                'date': headers.get('Date', ''),
+                'snippet': message.get('snippet', '')
+            })
+
+            if mark_as_read:
+                service.users().messages().modify(
+                    userId='me',
+                    id=msg['id'],
+                    body={'removeLabelIds': ['UNREAD']}
+                ).execute()
+
+        return JSONResponse(content={"emails": email_list, "count": len(email_list)})
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch unread emails: {str(e)}")
