@@ -4,6 +4,8 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from app.service.google_service import get_gmail_service
+from datetime import datetime
+
 
 router = APIRouter(prefix="/gmail", tags=["Gmail"])
 
@@ -13,7 +15,8 @@ class EmailRequest(BaseModel):
     body: str
 
 @router.get("/incoming")
-async def get_incoming_emails(google_id: str = Query(..., description="Google user ID"), max_results: int = 10):
+async def get_incoming_emails(
+    google_id: str = Query(..., description="Google user ID"), max_results: int = Query(10, description="Maximum number of results (default: 10, max: 50)")):
     """Get incoming emails (limited to 10 by default)"""
     try:
         service = await get_gmail_service(google_id)  # Add google_id parameter
@@ -52,7 +55,10 @@ async def get_incoming_emails(google_id: str = Query(..., description="Google us
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/send")
-async def send_email(email: EmailRequest, google_id: str = Query(..., description="Google user ID")):
+async def send_email(
+    email: EmailRequest, 
+    google_id: str = Query(..., description="Google user ID")
+):
     """Send an email"""
     try:
         service = await get_gmail_service(google_id)
@@ -74,7 +80,7 @@ async def send_email(email: EmailRequest, google_id: str = Query(..., descriptio
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @router.get("/unread")
 async def get_recent_unread_emails(
     google_id: str = Query(..., description="Google user ID"),
@@ -124,3 +130,21 @@ async def get_recent_unread_emails(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch unread emails: {str(e)}")
+
+@router.post("/watch/setup")
+async def setup_watch(
+    google_id: str = Query(..., description="Google user ID"),
+    topic_name: str = Query(..., description="Google Cloud Pub/Sub topic name")
+):
+    """Set up Gmail watch for push notifications."""
+    try:
+        from service.google_service import setup_gmail_watch
+        response = await setup_gmail_watch(google_id, topic_name)
+        return JSONResponse(content={
+            "status": "success",
+            "expiration": response.get('expiration'),
+            "historyId": response.get('historyId'),
+            "message": f"Watch set up successfully. Expires at: {response.get('expiration')}"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
