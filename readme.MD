@@ -1,8 +1,6 @@
 # BMO - Personal Assistent
 
-<div style="text-align:center; margin-bottom:20px;">
-  <img src="./Assets/BMO_diagram.jpeg" alt="LLM workflow" width="600"/>
-</div>
+<img src="./Assets/BMO_diagram.jpeg" alt="LLM workflow" width="600" style="margin-bottom:20px;"/>
 
 **BMO** is an **agentic conversational assistant** powered by Google’s Gemini generative AI model. It understands natural language to manage everyday tasks such as reading and sending emails, checking calendar availability, scheduling meetings, and sending follow-up messages. BMO is also integrated with physical hardware, allowing users to talk directly to it for a truly hands-free and voice-driven experience that combines intelligent automation with real-world interaction.
 
