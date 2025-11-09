@@ -3,8 +3,9 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 import json
 import base64
-from service.google_service import get_gmail_service, update_watch_history_id
-from database import get_auth_tokens_collection
+from app.service.google_service import get_gmail_service, update_watch_history_id
+from app.database import get_auth_tokens_collection, get_users_collection
+import requests
 
 router = APIRouter(prefix="/gmail", tags=["Gmail Webhook"])
 
@@ -38,7 +39,6 @@ async def gmail_webhook(
                 email_address = notification_data.get('emailAddress')
 
                 # Get user document from MongoDB
-                from database import get_users_collection
                 users_collection = get_users_collection()
                 user_doc = await users_collection.find_one({"email": email_address})
                 
@@ -105,7 +105,7 @@ async def process_email_changes(google_id: str):
         raise
 
 async def process_new_email(google_id: str, message_id: str, service):
-    """Process a new email and detect meeting requests."""
+    """Process a new email and call AI API."""
     try:
         # Get full message
         message = service.users().messages().get(
@@ -124,45 +124,34 @@ async def process_new_email(google_id: str, message_id: str, service):
         # Get email body
         body_text = extract_email_body(message['payload'])
         
-        # Check if it's a meeting request
-        is_meeting_request = detect_meeting_request(subject, body_text)
+        print(f"New email received: From: {from_email}, Subject: {subject}, Thread: {thread_id}")
         
-        # Only store if it's a meeting request
-        if is_meeting_request:
-            from database import get_users_collection
-            from datetime import datetime
+        # Call AI API to process the email
+        try:
+            ai_url = "http://localhost:8001/get-response"
+            ai_prompt = f"""You received a new email:
+
+From: {from_email}
+Subject: {subject}
+Body: {body_text}
+Snippet: {snippet}
+
+Please analyze this email and take appropriate action. Use google_id: {google_id} when making API calls to check calendar availability, send emails, or schedule meetings."""
             
-            users_collection = get_users_collection()
-            
-            # Create pending request object
-            pending_request = {
-                "message_id": message_id,
-                "thread_id": thread_id,
-                "from_email": from_email,
-                "subject": subject,
-                "body": body_text,
-                "snippet": snippet,
-                "processed_at": datetime.utcnow(),
-                "created_at": datetime.fromtimestamp(int(message['internalDate']) / 1000) if message.get('internalDate') else datetime.utcnow()
+            ai_data = {
+                "input": ai_prompt
             }
             
-            # Add to user's pending_requests array (avoid duplicates by message_id)
-            # Add to user's pending_requests array (avoid duplicates by message_id)
-            # First, remove if exists (to avoid duplicates)
-            await users_collection.update_one(
-                {"google_id": google_id},
-                {"$pull": {"pending_requests": {"message_id": message_id}}}
-            )
-
-            # Then, add the new one
-            result = await users_collection.update_one(
-                {"google_id": google_id},
-                {"$push": {"pending_requests": pending_request}}
-            )
-
-            print(f"[DEBUG] MongoDB update result - matched: {result.matched_count}, modified: {result.modified_count}")
+            ai_response = requests.post(ai_url, json=ai_data, timeout=30)
             
-            print(f"Meeting request stored in user document: {from_email}, thread: {thread_id}")
+            if ai_response.status_code == 200:
+                ai_result = ai_response.json()
+                print(f"AI processed email: {ai_result.get('response', 'No response')}")
+            else:
+                print(f"AI API error: {ai_response.status_code}, {ai_response.text}")
+        
+        except Exception as ai_error:
+            print(f"Error calling AI API: {str(ai_error)}")
     
     except Exception as e:
         print(f"Error processing email {message_id}: {str(e)}")
