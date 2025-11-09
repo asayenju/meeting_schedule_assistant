@@ -17,6 +17,7 @@ app = FastAPI(
 
 class Query(BaseModel):
     input: str
+    google_id: str = None  # Optional, will use env var if not provided
 
 @app.on_event("startup")
 async def startup_event():
@@ -29,7 +30,7 @@ async def shutdown_event():
 @app.post("/get-response")
 async def get_response_api(query: Query):
     try:
-        response_text = generate_response(query.input)
+        response_text = generate_response(query.input, google_id=query.google_id)
         return {"response": response_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

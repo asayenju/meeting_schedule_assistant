@@ -9,7 +9,7 @@ import requests
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
-google_id = os.getenv("GOOGLE_ID")
+google_id = os.getenv("GOOGLE_ID")  # Keep as fallback
 client = genai.Client(api_key=api_key)
 
 # -------- Start Tools Functions ----------- #
@@ -34,7 +34,9 @@ def summarize_calendar(data, timezone="US/Eastern"):
 
     return "\n".join(summary)
 
-def get_current_availability(start_range: str, end_range: str) -> str:
+def get_current_availability(start_range: str, end_range: str, google_id: str = None) -> str:
+    if google_id is None:
+        google_id = os.getenv("GOOGLE_ID")  # Fallback to env var
     print(start_range, end_range)
     availability = requests.get(
         "http://localhost:8000/api/calendar/freebusy",
@@ -47,7 +49,9 @@ def get_current_availability(start_range: str, end_range: str) -> str:
     print(availability)
     return summarize_calendar(availability)
 
-def send_email(recipient: str, subject: str, body: str) -> str:
+def send_email(recipient: str, subject: str, body: str, google_id: str = None) -> str:
+    if google_id is None:
+        google_id = os.getenv("GOOGLE_ID")  # Fallback to env var
     url = "http://localhost:8000/api/gmail/send"
 
     params = {
@@ -62,7 +66,9 @@ def send_email(recipient: str, subject: str, body: str) -> str:
     response = requests.post(url, params=params, json=payload)
     return f"Email sent to {recipient} with subject '{subject}'." if response.status_code == 200 else "Failed to send email."
     
-def setup_meeting(summary: str, description: str, start_time: str, end_time: str) -> str:
+def setup_meeting(summary: str, description: str, start_time: str, end_time: str, google_id: str = None) -> str:
+    if google_id is None:
+        google_id = os.getenv("GOOGLE_ID")  # Fallback to env var
     USER_TIMEZONE = "US/Eastern"  # Amherst, MA timezone
     
     params = {"google_id": str(google_id)}
@@ -94,7 +100,9 @@ def format_emails(data):
 
     return "\n".join(result)
 
-def retrieve_email() -> str:
+def retrieve_email(google_id: str = None) -> str:
+    if google_id is None:
+        google_id = os.getenv("GOOGLE_ID")  # Fallback to env var
     url = "http://localhost:8000/api/gmail/unread"
 
     params = {
@@ -228,7 +236,106 @@ Rules:
 """
 
 
-def generate_response(user_input: str):
+# Store google_id for current request (thread-local approach)
+_current_google_id = None
+
+def generate_response(user_input: str, google_id: str = None):
+    global _current_google_id
+    _current_google_id = google_id or os.getenv("GOOGLE_ID")
+    
+    # Create wrapper functions that use the current google_id
+    def get_availability_wrapper(start_range: str, end_range: str) -> str:
+        return get_current_availability(start_range, end_range, _current_google_id)
+    
+    def send_email_wrapper(recipient: str, subject: str, body: str) -> str:
+        return send_email(recipient, subject, body, _current_google_id)
+    
+    def setup_meeting_wrapper(summary: str, description: str, start_time: str, end_time: str) -> str:
+        return setup_meeting(summary, description, start_time, end_time, _current_google_id)
+    
+    def retrieve_email_wrapper() -> str:
+        return retrieve_email(_current_google_id)
+    
+    # Create tool config with wrapper functions
+    get_availability_tool = types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name="get_current_availability",
+                description="Get the user's current availability during start_range to end_range.",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "start_range": {
+                            "type": "string",
+                            "description": "The beginning of the range to check availability. Format: 'YYYY-MM-DDTHH:MM:SSZ'."
+                        },
+                        "end_range": {
+                            "type": "string",
+                            "description": "The beginning of the range to check availability. Format: 'YYYY-MM-DDTHH:MM:SSZ'."
+                        }
+                    },
+                    "required": ["start_range", "end_range"]
+                }
+            )
+        ]
+    )
+
+    setup_meeting_tool = types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name="setup_meeting",
+                description="Schedule a meeting by creating a calendar event. IMPORTANT: Provide times in US/Eastern timezone format 'YYYY-MM-DDTHH:MM:SS' (without Z). For example, '2025-01-15T14:00:00' means 2pm Eastern on January 15, 2025.",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "summary": {"type": "string", "description": "Summary or title of the meeting."},
+                        "description": {"type": "string", "description": "Description or agenda of the meeting."},
+                        "start_time": {"type": "string", "description": "Start time in US/Eastern timezone format: 'YYYY-MM-DDTHH:MM:SS' (e.g., '2025-01-15T14:00:00' for 2pm Eastern)."},
+                        "end_time": {"type": "string", "description": "End time in US/Eastern timezone format: 'YYYY-MM-DDTHH:MM:SS' (e.g., '2025-01-15T14:30:00' for 2:30pm Eastern)."}
+                    },
+                    "required": ["summary", "description", "start_time", "end_time"]
+                }
+            )
+        ]
+    )
+
+    send_email_tool = types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name="send_email",
+                description="Send an email to a specified recipient. make sure to include recipient, subject, and body based on the context of the meeting scheduled.",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "recipient": {"type": "string", "description": "Email address of the recipient."},
+                        "subject": {"type": "string", "description": "Subject of the email."},
+                        "body": {"type": "string", "description": "Body content of the email."}
+                    },
+                    "required": ["recipient", "subject", "body"]
+                }
+            )
+        ]
+    )
+
+    retrieve_email_tool = types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name="retrieve_email",
+                description="Retrieve new emails from the inbox.",
+                parameters={
+                    "type": "object",
+                    "properties": {
+                    },
+                    "required": []
+                }
+            )
+        ]
+    )
+
+    config = types.GenerateContentConfig(
+        tools=[get_availability_tool, setup_meeting_tool, send_email_tool, retrieve_email_tool]
+    )
+
     conversation_history.append(f"User: {user_input}")
 
     contents = [system_instruction] + list(conversation_history)
@@ -244,7 +351,15 @@ def generate_response(user_input: str):
             function_name = func_call.name
             args = dict(func_call.args)
             
-            tool_function = globals().get(function_name)
+            # Map function names to wrapper functions
+            function_map = {
+                "get_current_availability": get_availability_wrapper,
+                "send_email": send_email_wrapper,
+                "setup_meeting": setup_meeting_wrapper,
+                "retrieve_email": retrieve_email_wrapper
+            }
+            
+            tool_function = function_map.get(function_name)
             if tool_function:
                 function_output = tool_function(**args)
                 conversation_history.append(f"Function {function_name} output: {function_output}")

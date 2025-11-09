@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Transcription</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .recorder {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .record-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .record-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .record-button.recording {
+            background: #e74c3c;
+            animation: pulse 1.5s infinite;
+        }
+
+        .record-button.recording:hover {
+            background: #c0392b;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .status {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #666;
+            min-height: 24px;
+        }
+
+        .status.recording {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .transcript-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            min-height: 100px;
+        }
+
+        .transcript-container h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .transcript-text {
+            color: #555;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-weight: bold;
+        }
+
+        .transcript-text.empty {
+            color: #999;
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        .transcription-section {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .transcription-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .agent-response-section {
+            margin-top: 20px;
+        }
+
+        .agent-response-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .agent-response-text {
+            color: #495057;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-weight: normal;
+        }
+
+        .ai-response-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 10px;
+            min-height: 100px;
+            border: 2px solid #667eea;
+        }
+
+        .ai-response-container h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ai-response-text {
+            color: #2c3e50;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-weight: 500;
+            font-size: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .ai-response-text.empty {
+            color: #999;
+            font-style: italic;
+            font-weight: normal;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            padding: 10px;
+            background: #ffeaea;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Voice Transcription</h1>
+        
+        <div class="recorder">
+            <button id="recordButton" class="record-button" title="Click to start/stop recording">
+                🎤
+            </button>
+            <div id="status" class="status">Click the microphone to start recording</div>
+        </div>
+
+        <div class="transcript-container">
+            <h2>Transcription</h2>
+            <div id="transcript" class="transcript-text empty">Your transcription will appear here...</div>
+            <div id="error" class="error" style="display: none;"></div>
+        </div>
+
+        <div class="ai-response-container">
+            <h2>🤖 AI Response</h2>
+            <div id="aiResponse" class="ai-response-text empty">Your AI response will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        const recordButton = document.getElementById('recordButton');
+        const status = document.getElementById('status');
+        const transcript = document.getElementById('transcript');
+        const errorDiv = document.getElementById('error');
+        const aiResponseDiv = document.getElementById('aiResponse');
+
+        // Check if browser supports MediaRecorder
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            status.textContent = 'Your browser does not support audio recording';
+            recordButton.disabled = true;
+        }
+
+        recordButton.addEventListener('click', async () => {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Use MediaRecorder with WAV format if available, otherwise use webm
+                const options = {
+                    mimeType: 'audio/webm;codecs=opus'
+                };
+                
+                // Try to use WAV if supported
+                if (MediaRecorder.isTypeSupported('audio/wav')) {
+                    options.mimeType = 'audio/wav';
+                } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+                    options.mimeType = 'audio/webm';
+                }
+
+                mediaRecorder = new MediaRecorder(stream, options);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                    sendAudioForTranscription(audioBlob);
+                    
+                    // Stop all tracks to release microphone
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordButton.classList.add('recording');
+                recordButton.textContent = '⏹️';
+                status.textContent = 'Recording... Click again to stop';
+                status.classList.add('recording');
+                transcript.innerHTML = 'Your transcription will appear here...';
+                transcript.classList.add('empty');
+                aiResponseDiv.textContent = 'Your AI response will appear here...';
+                aiResponseDiv.classList.add('empty');
+                errorDiv.style.display = 'none';
+            } catch (err) {
+                console.error('Error starting recording:', err);
+                status.textContent = 'Error: Could not access microphone. Please check permissions.';
+                errorDiv.textContent = err.message;
+                errorDiv.style.display = 'block';
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+                recordButton.classList.remove('recording');
+                recordButton.textContent = '🎤';
+                status.innerHTML = 'Processing... <span class="loading"></span>';
+                status.classList.remove('recording');
+            }
+        }
+
+        async function sendAudioForTranscription(audioBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.wav');
+
+                const response = await fetch('/transcribe', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                // Debug: Log the full response
+                console.log('Full API response:', result);
+                console.log('Transcription text:', result.text);
+                console.log('Agent response:', result.agent_response);
+
+                if (result.success) {
+                    const transcribedText = result.text || 'No text transcribed';
+                    // Handle null, undefined, or empty agent response
+                    const agentResponse = result.agent_response !== null && result.agent_response !== undefined 
+                        ? result.agent_response 
+                        : 'Waiting for agent response...';
+                    
+                    // Display transcription in the transcript container
+                    if (transcribedText) {
+                        // Escape HTML to prevent XSS
+                        const escapedText = transcribedText
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#039;')
+                            .replace(/\n/g, '<br>');
+                        
+                        transcript.innerHTML = escapedText;
+                        transcript.classList.remove('empty');
+                    } else {
+                        transcript.textContent = 'No text transcribed';
+                        transcript.classList.add('empty');
+                    }
+                    
+                    // Display AI response in the separate AI response container
+                    const escapedResponse = (agentResponse || 'Waiting for agent response...')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#039;')
+                        .replace(/\n/g, '<br>');
+                    
+                    aiResponseDiv.innerHTML = escapedResponse;
+                    aiResponseDiv.classList.remove('empty');
+                    status.textContent = 'Transcription complete!';
+                    errorDiv.style.display = 'none';
+                } else {
+                    throw new Error(result.error || 'Transcription failed');
+                }
+            } catch (err) {
+                console.error('Error transcribing audio:', err);
+                status.textContent = 'Error occurred during transcription';
+                errorDiv.textContent = err.message || 'Failed to transcribe audio. Please try again.';
+                errorDiv.style.display = 'block';
+                transcript.innerHTML = 'Your transcription will appear here...';
+                transcript.classList.add('empty');
+                aiResponseDiv.textContent = 'Your AI response will appear here...';
+                aiResponseDiv.classList.add('empty');
+            }
+        }
+    </script>
+</body>
+</html>

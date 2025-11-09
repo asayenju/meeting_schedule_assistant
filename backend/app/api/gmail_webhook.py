@@ -3,9 +3,10 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 import json
 import base64
+import asyncio
 from app.service.google_service import get_gmail_service, update_watch_history_id
 from app.database import get_auth_tokens_collection, get_users_collection
-import requests
+import httpx
 
 router = APIRouter(prefix="/gmail", tags=["Gmail Webhook"])
 
@@ -126,35 +127,42 @@ async def process_new_email(google_id: str, message_id: str, service):
         
         print(f"New email received: From: {from_email}, Subject: {subject}, Thread: {thread_id}")
         
-        # Call AI API to process the email
-        try:
-            ai_url = "http://localhost:8001/get-response"
-            ai_prompt = f"""You received a new email:
+        # Call AI API in background (non-blocking)
+        asyncio.create_task(call_ai_api(google_id, from_email, subject, body_text, snippet))
+    
+    except Exception as e:
+        print(f"Error processing email {message_id}: {str(e)}")
+
+async def call_ai_api(google_id: str, from_email: str, subject: str, body_text: str, snippet: str):
+    """Call AI API to process email (non-blocking)."""
+    try:
+        ai_url = "http://localhost:8001/get-response"
+        ai_prompt = f"""You received a new email:
 
 From: {from_email}
 Subject: {subject}
 Body: {body_text}
 Snippet: {snippet}
 
-Please analyze this email and take appropriate action. Use google_id: {google_id} when making API calls to check calendar availability, send emails, or schedule meetings."""
-            
-            ai_data = {
-                "input": ai_prompt
-            }
-            
-            ai_response = requests.post(ai_url, json=ai_data, timeout=30)
+Please analyze this email and take appropriate action."""
+        
+        ai_data = {
+            "input": ai_prompt,
+            "google_id": google_id  # Pass google_id to AI API
+        }
+        
+        # Use httpx for async requests
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            ai_response = await client.post(ai_url, json=ai_data)
             
             if ai_response.status_code == 200:
                 ai_result = ai_response.json()
                 print(f"AI processed email: {ai_result.get('response', 'No response')}")
             else:
                 print(f"AI API error: {ai_response.status_code}, {ai_response.text}")
-        
-        except Exception as ai_error:
-            print(f"Error calling AI API: {str(ai_error)}")
     
-    except Exception as e:
-        print(f"Error processing email {message_id}: {str(e)}")
+    except Exception as ai_error:
+        print(f"Error calling AI API: {str(ai_error)}")
 
 def extract_email_body(payload: dict) -> str:
     """Extract text body from email payload."""
