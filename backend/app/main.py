@@ -5,6 +5,7 @@ from app.api.auth import router as auth_router
 from app.api.calendar import router as calendar_router
 from app.api.gmail import router as gmail_router
 from app.database import connect_to_mongo, close_mongo_connection
+from app.api.device import router as device_router
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 
@@ -34,12 +35,13 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api", tags=["Auth"])
 app.include_router(calendar_router, prefix="/api", tags=["Calendar"])
 app.include_router(gmail_router, prefix="/api", tags=["Gmail"])
+app.include_router(device_router, prefix="/api", tags=["Device"])
 
 @app.get("/")
 def root():
     return {
         "message": "Welcome to Google API Demo",
-        "routes": ["/api/auth/login", "/api/calendar/freebusy", "/api/gmail/messages"]
+        "routes": ["/api/auth/login", "/api/calendar/freebusy", "/api/gmail/messages", "/api/device"]
     }
 
 
