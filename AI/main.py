@@ -77,9 +77,9 @@ def setup_meeting(summary: str, description: str, start_time: str, end_time: str
     print(response)
     return f"Meeting scheduled successfully from {start_time} to {end_time}." if response.status_code == 200 else "Failed to schedule meeting."
 
-def retrieve_email() -> str:
-    print("Retrieving new emails...")
-    return "Email 1: Hi Nahm, would you be available to meet at 8 pm on november 8 Email 2: I want to meet for project discussion, what time are you available?"
+# def retrieve_email() -> str:
+#     print("Retrieving new emails...")
+#     return "Email 1: Hi Nahm, would you be available to meet at 8 pm on november 8 Email 2: I want to meet for project discussion, what time are you available?"
 
 get_availability_tool = types.Tool(
     function_declarations=[
@@ -157,7 +157,7 @@ retrieve_email_tool = types.Tool(
 )
 
 config = types.GenerateContentConfig(
-    tools=[get_availability_tool, setup_meeting_tool, send_email_tool, retrieve_email_tool]
+    tools=[get_availability_tool, setup_meeting_tool, send_email_tool]
 )
 
 # -------- End Tools Functions ----------- #
@@ -224,7 +224,8 @@ def generate_response(user_input: str):
         return response.text
 
 if __name__ == "__main__":
-    while True:
-        user_input = input("You: ")
-        result = generate_response(user_input)
-        print(f"Assistant: {result}")
+    # while True:
+    #     user_input = input("You: ")
+    #     result = generate_response(user_input)
+    #     print(f"Assistant: {result}")
+    print(generate_response("do we have any meeting tomorrow?"))
