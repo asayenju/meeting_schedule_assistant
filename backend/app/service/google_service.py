@@ -12,8 +12,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 
 SCOPES = [
-    'https://www.googleapis.com/auth/calendar.events',
-    'https://www.googleapis.com/auth/calendar.readonly',
+    'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/gmail.modify',
@@ -152,3 +151,39 @@ async def update_watch_history_id(google_id: str, history_id: str):
         {"user_id": google_id},
         {"$set": {"watch_history_id": history_id, "updated_at": datetime.utcnow()}}
     )
+
+async def setup_gmail_watch(google_id: str, topic_name: str) -> dict:
+    """
+    Set up Gmail watch for push notifications.
+    
+    Args:
+        google_id: User's Google ID
+        topic_name: Google Cloud Pub/Sub topic name 
+                   (e.g., "projects/your-project/topics/gmail-notifications")
+    
+    Returns:
+        Watch response with expiration and historyId
+    """
+    service = await get_gmail_service(google_id)
+    
+    # Get current historyId from database
+    auth_tokens_collection = get_auth_tokens_collection()
+    token_doc = await auth_tokens_collection.find_one({"user_id": google_id})
+    start_history_id = token_doc.get('watch_history_id') if token_doc else None
+    
+    watch_request = {
+        "topicName": topic_name,
+        "labelIds": ["INBOX"]  # Only watch inbox
+    }
+    
+    # Include start historyId if available
+    if start_history_id:
+        watch_request["labelFilterAction"] = "include"
+    
+    response = service.users().watch(userId='me', body=watch_request).execute()
+    
+    # Update historyId in database
+    if response.get('historyId'):
+        await update_watch_history_id(google_id, response['historyId'])
+    
+    return response

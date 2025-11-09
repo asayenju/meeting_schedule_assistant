@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from service.google_service import get_calendar_service
@@ -15,13 +15,23 @@ class EventRequest(BaseModel):
 router = APIRouter(prefix="/calendar", tags=["Calendar"])
 
 @router.get("/freebusy")
-async def get_freebusy(google_id: str = Query(..., description="Google user ID"), start_range: str = Query(None, description="Start time range (ISO format)"),
-    end_range: str = Query(None, description="End time range (ISO format)")):
+async def get_freebusy(
+    google_id: str = Query(..., description="Google user ID"),
+    start_range: str = None,
+    end_range: str = None
+):
     """Get free/busy calendar information"""
     try:
         service = await get_calendar_service(google_id)
-        now = start_range
-        end_time = end_range
+        
+        # Use provided ranges or calculate dynamically
+        if start_range and end_range:
+            now = start_range
+            end_time = end_range
+        else:
+            # Default: next 24 hours
+            now = datetime.utcnow().isoformat() + 'Z'
+            end_time = (datetime.utcnow() + timedelta(days=1)).isoformat() + 'Z'
 
         body = {
             "timeMin": now,
@@ -55,10 +65,13 @@ async def get_freebusy(google_id: str = Query(..., description="Google user ID")
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/create")
-async def create_event(event: EventRequest):
+async def create_event(
+    event: EventRequest,
+    google_id: str = Query(..., description="Google user ID")
+):
     """Create an event in Google Calendar."""
     try:
-        service = get_calendar_service()
+        service = await get_calendar_service(google_id)
 
         event_body = {
             "summary": event.summary,

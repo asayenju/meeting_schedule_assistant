@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth import router as auth_router
 from api.calendar import router as calendar_router
 from api.gmail import router as gmail_router
+from api.gmail_webhook import router as gmail_webhook_router
+
 from database import connect_to_mongo, close_mongo_connection
 from contextlib import asynccontextmanager
 
@@ -28,7 +30,8 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api", tags=["Auth"])
 app.include_router(calendar_router, prefix="/api", tags=["Calendar"])
-app.include_router(gmail_router, prefix="/api", tags=["Gmail"])
+app.include_router(gmail_router, prefix="/api", tags=["Gmail"])  
+app.include_router(gmail_webhook_router, prefix="/api", tags=["Gmail Webhook"])
 
 @app.get("/")
 def root():

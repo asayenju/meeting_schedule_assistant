@@ -34,23 +34,15 @@ def summarize_calendar(data, timezone="US/Eastern"):
     return "\n".join(summary)
 
 def get_current_availability(start_range: str, end_range: str) -> str:
-    return """
-    free times:
-    - Nov 08, 2025 06:00 PM to Nov 08, 2025 08:00 PM
-    - Nov 09, 2025 09:00 AM to Nov 09, 2025 11:00 AM
-    - Nov 10, 2025 01:00 PM to Nov 10, 2025 03:00 PM
-    busy times:
-    - Nov 08, 2025 08:00 AM to Nov 08, 2025 10:00 AM
-    - Nov 09, 2025 01:00 PM to Nov 09, 2025 03:00 PM
-    - Nov 10, 2025 09:00 AM to Nov 10, 2025 11:00 AM
-    """
+    print(start_range, end_range)
     availability = requests.get(
-        "http://localhost:8000/api/calendar/freebusy",
-        params={
-            "start_range": start_range,
-            "end_range": end_range
-        }
-    ).json()
+    "http://localhost:8000/api/calendar/freebusy",
+    params={
+        "google_id": 103748791506482361674,
+        "start_range": "2025-11-08T09:00:00Z",
+        "end_range": "2025-11-08T17:00:00Z"
+    }).json()
+    print(availability)
     return summarize_calendar(availability)
 
 def send_email(recipient: str, subject: str, body: str) -> str:
@@ -72,9 +64,9 @@ def setup_meeting(summary: str, description: str, start_time: str, end_time: str
         "timezone": "UTC"
     }
     print(event_data)
-    return "success"
 
     response = requests.post("http://localhost:8000/calendar/create", json=event_data)
+    print(response)
     return f"Meeting scheduled successfully from {start_time} to {end_time}." if response.status_code == 200 else "Failed to schedule meeting."
 
 def retrieve_email() -> str:
@@ -162,7 +154,7 @@ config = types.GenerateContentConfig(
 
 # -------- End Tools Functions ----------- #
 
-MAX_HISTORY = 8
+MAX_HISTORY = 5
 conversation_history = deque(maxlen=MAX_HISTORY)
 
 system_instruction = """
