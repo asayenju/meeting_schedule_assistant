@@ -1,13 +1,66 @@
-import requests
-from datetime import datetime
-import pytz
-import requests
+# import requests
+# from datetime import datetime
+# import pytz
+# import requests
 
-import time
+# import time
 
-# Name of the time zone
-timezone_name = time.tzname[0]
-print("Time zone:", timezone_name)
+# import requests
+# from pprint import pprint
+
+# url = "http://localhost:8000/api/gmail/unread"
+
+# # Define the query parameters
+# params = {
+#     "google_id": "112274170123197936875",
+#     "max_results": 5,
+#     "mark_as_read": False
+# }
+
+# # Make the GET request
+# response = requests.get(url, params=params)
+
+# def format_emails(data):
+#     emails = data.get('emails', [])
+#     result = []
+
+#     for i, email in enumerate(emails, start=1):
+#         email_str = (
+#             f"Email {i}\n"
+#             f"From: {email.get('from')}, Date: {email.get('date')}\n"
+#             f"Subject: {email.get('subject')}\n"
+#             f"Snippet: {email.get('snippet')}\n"
+#         )
+#         result.append(email_str)
+
+#     return "\n".join(result)
+
+# # Check the response
+# if response.status_code == 200:
+#     print(format_emails(response.json()))
+# else:
+#     print("Error:", response.status_code, response.text)
+
+# Define the API URL
+# url = "http://localhost:8001/get-response"
+
+# # Define the input data
+# data = {
+#     "input": "do I have any meeting tomorrow"
+# }
+
+# # Make the POST request
+# response = requests.post(url, json=data)
+
+# # Check the response
+# if response.status_code == 200:
+#     print("Response:", response.json())
+# else:
+#     print("Error:", response.status_code, response.text)
+
+# # Name of the time zone
+# timezone_name = time.tzname[0]
+# print("Time zone:", timezone_name)
 
 # curr_datetime = datetime.now()
 # print(str(curr_datetime))
@@ -34,12 +87,12 @@ print("Time zone:", timezone_name)
 
 # send_email("teerat.nahm@gmail.com", "Test Subject", "This is a test email body.")
 
-url = "http://127.0.0.1:8000/api/calendar/create"
-params = {"google_id": "112274170123197936875"}
-data = {'summary': 'Gym Session', 'description': 'Meeting to discuss and plan gym activities.', 'start_time': '2025-11-09T15:00:00Z', 'end_time': '2025-11-09T17:00:00Z', 'timezone': timezone_name}
+# url = "http://127.0.0.1:8000/api/calendar/create"
+# params = {"google_id": "112274170123197936875"}
+# data = {'summary': 'Gym Session', 'description': 'Meeting to discuss and plan gym activities.', 'start_time': '2025-11-09T15:00:00Z', 'end_time': '2025-11-09T17:00:00Z', 'timezone': timezone_name}
 
-response = requests.post(url, params=params, json=data)
-print(response.json())
+# response = requests.post(url, params=params, json=data)
+# print(response.json())
 
 # availability = requests.get(
 #     "http://localhost:8000/api/calendar/freebusy",

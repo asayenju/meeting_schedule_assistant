@@ -6,6 +6,8 @@ from app.api.calendar import router as calendar_router
 from app.api.gmail import router as gmail_router
 from app.database import connect_to_mongo, close_mongo_connection
 from app.api.device import router as device_router
+from app.api.gmail_webhook import router as gmail_webhook_router
+
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 
@@ -34,8 +36,9 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api", tags=["Auth"])
 app.include_router(calendar_router, prefix="/api", tags=["Calendar"])
-app.include_router(gmail_router, prefix="/api", tags=["Gmail"])
-app.include_router(device_router, prefix="/api", tags=["Audio"])
+app.include_router(device_router, prefix="/api", tags=["Device"])
+app.include_router(gmail_router, prefix="/api", tags=["Gmail"])  
+app.include_router(gmail_webhook_router, prefix="/api", tags=["Gmail Webhook"])
 
 @app.get("/")
 def root():
